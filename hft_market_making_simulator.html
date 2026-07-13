@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HFT Market Making Simulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            width: 100%;
+            max-width: 800px;
+            padding: 30px;
+            box-sizing: border-box;
+        }
+        h2 { margin-top: 0; color: #1a202c; font-weight: 500; }
+        .top-panel {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .mid-price-display {
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            color: #0f172a;
+        }
+        .order-book-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            height: 180px;
+            align-items: center;
+            position: relative;
+        }
+        .center-line {
+            position: absolute;
+            width: 1px;
+            height: 100%;
+            background: #cbd5e1;
+            left: 50%;
+            border-left: 1px dashed #94a3b8;
+        }
+        .book-side {
+            display: flex;
+            flex-direction: column;
+            width: 140px;
+            gap: 4px;
+        }
+        .level {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.1s;
+        }
+        .ask-level { background: #fee2e2; color: #991b1b; }
+        .bid-level { background: #dbeafe; color: #1e3a8a; }
+        
+        .mm-order {
+            border: 2px solid;
+            font-weight: bold;
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .mm-order::after {
+            content: "MM";
+            position: absolute;
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+        .ask-level.mm-order { border-color: #ef4444; }
+        .ask-level.mm-order::after { right: -25px; color: #ef4444; }
+        .bid-level.mm-order { border-color: #3b82f6; }
+        .bid-level.mm-order::after { left: -25px; color: #3b82f6; }
+
+        .inventory-risk {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 150px;
+        }
+        .inventory-risk label { font-size: 0.75em; color: #64748b; font-weight: bold; }
+        .risk-bar {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            margin-top: 4px;
+            position: relative;
+        }
+        .risk-thumb {
+            position: absolute;
+            width: 4px;
+            height: 14px;
+            background: #10b981;
+            top: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: left 0.2s, background-color 0.2s;
+        }
+
+        .chart-container { position: relative; height: 200px; width: 100%; }
+        
+        .stats-row {
+            display: flex;
+            justify-content: space-evenly;
+            margin: 25px 0 15px;
+        }
+        .stat-box { text-align: center; }
+        .stat-label { font-size: 0.75em; color: #64748b; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; }
+        .stat-val { font-size: 1.5em; font-weight: bold; color: #0f172a; }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+        .speed-slider { flex: 1; max-width: 200px; cursor: pointer; }
+        
+        /* Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider-tog { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 24px; }
+        .slider-tog:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider-tog { background-color: #10b981; }
+        input:checked + .slider-tog:before { transform: translateX(20px); }
+        
+        .flash {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #f59e0b;
+            animation: ping 0.5s cubic-bezier(0, 0, 0.2, 1) forwards;
+            pointer-events: none;
+            z-index: 10;
+        }
+        @keyframes ping {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(4); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>HFT Market Making Simulator</h2>
+    
+    <div class="top-panel">
+        <div class="mid-price-display" id="midPriceDisplay">MID: $97.600</div>
+        
+        <div class="inventory-risk">
+            <label>Inventory Skew Risk</label>
+            <div class="risk-bar">
+                <div class="risk-thumb" id="riskThumb"></div>
+            </div>
+        </div>
+
+        <div class="order-book-container" id="obContainer">
+            <div class="center-line"></div>
+            <!-- Bids -->
+            <div class="book-side" id="bidsSide"></div>
+            <!-- Asks -->
+            <div class="book-side" id="asksSide"></div>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="pnlChart"></canvas>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-box">
+            <div class="stat-label">Spread Captured ($)</div>
+            <div class="stat-val" id="spreadVal">0.00</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Net Inventory (Units)</div>
+            <div class="stat-val" id="invVal">0</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label style="font-size:0.9em; font-weight:600; color:#475569;">Market Speed</label>
+            <input type="range" id="speedSlider" class="speed-slider" min="10" max="500" value="100" style="direction: rtl;">
+        </div>
+        <div class="control-group" style="justify-content: flex-end;">
+            <label style="font-size:0.9em; font-weight:600; color:#475569;">Market Maker Mode</label>
+            <label class="switch">
+                <input type="checkbox" id="mmToggle">
+                <span class="slider-tog"></span>
+            </label>
+        </div>
+    </div>
+</div>
+
+<script>
+    // State Variables
+    let midPrice = 97.60;
+    let pnl = 0;
+    let inventory = 0;
+    let isMMOn = false;
+    let speedMs = 400; // inverted speed: lower is faster updates
+    
+    let timeSeconds = 0;
+    let chartLabels = [0];
+    let chartData = [0];
+
+    // DOM Elements
+    const elMid = document.getElementById('midPriceDisplay');
+    const elBids = document.getElementById('bidsSide');
+    const elAsks = document.getElementById('asksSide');
+    const elInv = document.getElementById('invVal');
+    const elSpread = document.getElementById('spreadVal');
+    const elRiskThumb = document.getElementById('riskThumb');
+    const obContainer = document.getElementById('obContainer');
+
+    // Chart.js Setup
+    const ctx = document.getElementById('pnlChart').getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+    const pnlChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                label: 'PnL ($)',
+                data: chartData,
+                borderColor: '#3b82f6',
+                backgroundColor: gradient,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            scales: {
+                x: { display: false },
+                y: { 
+                    beginAtZero: false,
+                    grid: { color: '#f1f5f9' },
+                    ticks: { font: {size: 10} }
+                }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // Update Chart Timer
+    setInterval(() => {
+        timeSeconds++;
+        chartLabels.push(timeSeconds);
+        chartData.push(pnl);
+        if(chartLabels.length > 50) {
+            chartLabels.shift();
+            chartData.shift();
+        }
+        pnlChart.update();
+    }, 1000);
+
+    // Controls
+    document.getElementById('mmToggle').addEventListener('change', (e) => {
+        isMMOn = e.target.checked;
+        if(!isMMOn) { inventory = 0; pnl = 0; chartData=[0]; chartLabels=[0]; updateStats(); }
+    });
+    
+    document.getElementById('speedSlider').addEventListener('input', (e) => {
+        speedMs = parseInt(e.target.value);
+    });
+
+    function updateStats() {
+        elSpread.innerText = pnl.toFixed(2);
+        elInv.innerText = inventory;
+        
+        // Update risk thumb (max risk at +/- 100 inventory)
+        let riskPct = Math.min(Math.max((inventory / 100) * 50, -50), 50);
+        elRiskThumb.style.left = `calc(50% + ${riskPct}%)`;
+        if (Math.abs(inventory) > 70) elRiskThumb.style.backgroundColor = '#ef4444';
+        else if (Math.abs(inventory) > 40) elRiskThumb.style.backgroundColor = '#f59e0b';
+        else elRiskThumb.style.backgroundColor = '#10b981';
+    }
+
+    function createFlash(side, index) {
+        const flash = document.createElement('div');
+        flash.className = 'flash';
+        
+        // Positioning approximation based on layout
+        let top = 20 + (index * 28);
+        let left = side === 'bid' ? 100 : 250; 
+        
+        flash.style.top = top + 'px';
+        flash.style.left = left + 'px';
+        obContainer.appendChild(flash);
+        setTimeout(() => flash.remove(), 500);
+    }
+
+    function renderOrderBook() {
+        elBids.innerHTML = '';
+        elAsks.innerHTML = '';
+        
+        // Calculate MM Skew
+        let skew = 0;
+        if (isMMOn) {
+            // If inventory is positive (long), lower the price (negative skew)
+            skew = -(inventory * 0.005); 
+        }
+
+        let mmBidLevel = 0;
+        let mmAskLevel = 2; // Position in the array of visible depth
+
+        // Generate 4 levels of depth
+        for(let i=0; i<4; i++) {
+            // ASK (Selling)
+            let askPrice = midPrice + ((i+1) * 0.05) + (isMMOn ? skew : 0);
+            let askVol = Math.floor(Math.random() * 50) + 10;
+            let isMMAsk = isMMOn && i === mmAskLevel;
+            
+            let askEl = document.createElement('div');
+            askEl.className = 'level ask-level' + (isMMAsk ? ' mm-order' : '');
+            askEl.innerHTML = `<span>${isMMAsk ? 'MM ' : ''}${askVol}</span><span>$${askPrice.toFixed(2)}</span>`;
+            elAsks.insertBefore(askEl, elAsks.firstChild); // lowest ask at bottom
+
+            // BID (Buying)
+            let bidPrice = midPrice - ((i+1) * 0.05) + (isMMOn ? skew : 0);
+            let bidVol = Math.floor(Math.random() * 50) + 10;
+            let isMMBid = isMMOn && i === mmBidLevel;
+
+            let bidEl = document.createElement('div');
+            bidEl.className = 'level bid-level' + (isMMBid ? ' mm-order' : '');
+            bidEl.innerHTML = `<span>$${bidPrice.toFixed(2)}</span><span>${bidVol}${isMMBid ? ' MM' : ''}</span>`;
+            elBids.appendChild(bidEl); // highest bid at top
+            
+            // SIMULATE MARKET TRADES
+            if (Math.random() > 0.6) {
+                // Someone hit the Ask
+                createFlash('ask', i);
+                if (isMMAsk) {
+                    inventory -= 1; // MM sold
+                    pnl += 0.025; // captured half spread
+                }
+            }
+            if (Math.random() > 0.6) {
+                // Someone hit the Bid
+                createFlash('bid', i);
+                if (isMMBid) {
+                    inventory += 1; // MM bought
+                    pnl += 0.025; // captured half spread
+                }
+            }
+        }
+        
+        updateStats();
+    }
+
+    // Main Loop
+    function loop() {
+        // Random walk mid price
+        if (Math.random() > 0.5) midPrice += 0.01; else midPrice -= 0.01;
+        elMid.innerText = `MID: $${midPrice.toFixed(3)}`;
+        
+        renderOrderBook();
+        
+        setTimeout(loop, speedMs);
+    }
+
+    loop();
+
+</script>
+</body>
+</html>
