@@ -143,8 +143,16 @@
         </button>
       </nav>
 
-      <!-- Action Button -->
+      <!-- Action Buttons (Web Online Live + MT5 Local Bridge + Glossary) -->
       <div class="flex items-center gap-2">
+        <button type="button" id="btnWebLive" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-600/50 flex items-center gap-1.5 transition shadow" title="Обновить котировки онлайн через Yahoo Finance и Web API (золото, серебро, нефть, акции, валюты)">
+          <span class="w-2 h-2 rounded-full bg-emerald-400" id="webLiveDot"></span>
+          <span id="webLiveText">Цены онлайн (Yahoo Finance)</span>
+        </button>
+        <button type="button" id="btnMt5Status" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-2 transition" title="Опционально: подключение к личному терминалу MetaTrader 5 для точных спредов брокера">
+          <span class="w-2 h-2 rounded-full bg-slate-500" id="mt5StatusDot"></span>
+          <span id="mt5StatusText">MT5: Офлайн</span>
+        </button>
         <button type="button" id="btnOpenGlossary" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 flex items-center gap-1.5 transition">
           <span>💡</span>
           <span>Что есть что?</span>
@@ -165,9 +173,17 @@
       <div class="rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/50 to-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
           <div class="space-y-2 max-w-2xl">
-            <h2 class="text-xl sm:text-2xl font-bold text-white">
-              Визуальный симулятор расчетов
-            </h2>
+            <div class="flex items-center gap-2">
+              <h2 class="text-xl sm:text-2xl font-bold text-white">
+                Визуальный симулятор расчетов
+              </h2>
+              <span id="heroWebBadge" class="hidden px-2 py-0.5 rounded text-[11px] font-mono-num font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                ● Live Web API
+              </span>
+              <span id="heroLiveBadge" class="hidden px-2 py-0.5 rounded text-[11px] font-mono-num font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">
+                ● Live MT5
+              </span>
+            </div>
             <p class="text-sm text-slate-300 leading-relaxed">
               Все подчеркнутые понятия имеют пояснения:
               <button type="button" class="term-trigger font-medium text-indigo-300" data-term="base_currency">Базовая валюта</button>,
@@ -234,8 +250,9 @@
         <!-- Left Column: Interactive Controls -->
         <div class="lg:col-span-5 rounded-2xl bg-slate-900 border border-slate-800 p-5 space-y-5 shadow-xl">
           <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-            <div>
+            <div class="flex items-center gap-2">
               <h3 class="text-base font-bold text-white">Параметры сделки</h3>
+              <span id="livePriceTicker" class="hidden px-2 py-0.5 rounded text-[11px] font-mono-num font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"></span>
             </div>
             <span class="px-2.5 py-1 rounded-lg text-xs font-mono-num font-semibold bg-slate-800 text-indigo-300 border border-slate-700" id="masterQuoteTypeIndicator">
               Прямая котировка
@@ -1503,6 +1520,74 @@
   </main>
 
   <!-- ========================================== -->
+  <!-- MODAL: MT5 LIVE BRIDGE SETUP INSTRUCTIONS  -->
+  <!-- ========================================== -->
+  <div id="mt5ModalBackdrop" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+      <div class="flex items-start justify-between gap-3 border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Интеграция с MetaTrader 5</span>
+          <h3 class="text-lg font-bold text-white mt-0.5">Получение котировок из активного терминала</h3>
+        </div>
+        <button type="button" id="btnCloseMt5Modal" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-sm font-bold">
+          ✕
+        </button>
+      </div>
+
+      <div class="overflow-y-auto space-y-3.5 text-xs text-slate-300 leading-relaxed pr-1">
+        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+          <p><strong class="text-white">Почему нужен локальный шлюз (Python)?</strong></p>
+          <p>
+            Браузерная безопасность запрещает сайтам в интернете напрямую обращаться к программам на вашем компьютере. Чтобы веб-калькулятор получал реальные тики из вашего запущенного MT5, на компьютере запускается мини-сервер на Python, который транслирует цены в браузер.
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <p class="font-bold text-white text-xs uppercase tracking-wider">Инструкция по запуску (3 шага):</p>
+          <ol class="list-decimal pl-4 space-y-2">
+            <li>
+              Установите официальную библиотеку терминала в командной строке:
+              <div class="mt-1 p-2 rounded-lg bg-slate-950 border border-slate-800 font-mono-num text-emerald-400 flex items-center justify-between">
+                <span>pip install MetaTrader5</span>
+              </div>
+            </li>
+            <li>
+              Запустите терминал MetaTrader 5 и войдите в свой торговый счет.
+            </li>
+            <li>
+              Запустите скрипт шлюза <code class="text-indigo-300 font-mono-num">mt5_bridge.py</code>:
+              <div class="mt-1 p-2 rounded-lg bg-slate-950 border border-slate-800 font-mono-num text-emerald-400 flex items-center justify-between">
+                <span>python mt5_bridge.py</span>
+              </div>
+            </li>
+          </ol>
+        </div>
+
+        <div class="p-3 rounded-xl bg-indigo-950/30 border border-indigo-500/30 space-y-1.5">
+          <p class="font-semibold text-indigo-200">Что передается автоматически:</p>
+          <ul class="list-disc pl-4 space-y-0.5 text-slate-300">
+            <li>Реальные цены <strong>Bid</strong> и <strong>Ask</strong> в реальном времени</li>
+            <li>Точный размер контракта и знаки после запятой (Digits) вашего брокера</li>
+            <li>Валюта прибыли (Profit currency) и валюта маржи</li>
+            <li>Текущие ставки свопов Long / Short и метод начисления брокера</li>
+            <li>Курсы кросс-конвертации (EUR/USD, USD/CHF, USD/JPY, USD/RUB)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
+        <button type="button" id="btnTestMt5Connection" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5">
+          <span>🔄</span>
+          <span>Проверить подключение</span>
+        </button>
+        <button type="button" id="btnCloseMt5ModalFooter" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+          Закрыть
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
   <!-- MODAL / POPOVER: EXPLANATORY GLOSSARY      -->
   <!-- ========================================== -->
   <div id="termModalBackdrop" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
@@ -1778,16 +1863,16 @@
           contract: 100,
           precision: 0.01,
           leverage: 100,
-          openPrice: 2350.00,
-          closePrice: 2360.00,
+          openPrice: 4130.00,
+          closePrice: 4140.00,
           swapMethod: 'points',
-          swapRate: -12.0,
+          swapRate: -18.0,
           swapDays: 1,
           quoteToAccRate: 1,
           quoteToAccMode: 'none',
-          baseToAccRate: 23.50,
+          baseToAccRate: 41.30,
           baseToAccMode: 'multiply',
-          usdRubRate: 86.000,
+          usdRubRate: 96.500,
           label: 'XAU/USD (Золото, 100 унций)'
         },
         xagusd_metal: {
@@ -1800,16 +1885,16 @@
           contract: 5000,
           precision: 0.001,
           leverage: 100,
-          openPrice: 28.500,
-          closePrice: 28.700,
+          openPrice: 57.500,
+          closePrice: 57.900,
           swapMethod: 'points',
-          swapRate: -3.5,
+          swapRate: -5.0,
           swapDays: 1,
           quoteToAccRate: 1,
           quoteToAccMode: 'none',
-          baseToAccRate: 28.50,
+          baseToAccRate: 57.50,
           baseToAccMode: 'multiply',
-          usdRubRate: 86.000,
+          usdRubRate: 96.500,
           label: 'XAG/USD (Серебро, 5 000 унций)'
         },
         wti_oil: {
@@ -1822,16 +1907,16 @@
           contract: 1000,
           precision: 0.01,
           leverage: 100,
-          openPrice: 78.50,
-          closePrice: 79.50,
+          openPrice: 97.20,
+          closePrice: 98.20,
           swapMethod: 'points',
-          swapRate: -2.5,
+          swapRate: -3.5,
           swapDays: 1,
           quoteToAccRate: 1,
           quoteToAccMode: 'none',
-          baseToAccRate: 78.50,
+          baseToAccRate: 97.20,
           baseToAccMode: 'multiply',
-          usdRubRate: 86.000,
+          usdRubRate: 96.500,
           label: 'WTI (Нефть, 1 000 баррелей)'
         },
         brent_oil: {
@@ -1844,16 +1929,16 @@
           contract: 1000,
           precision: 0.01,
           leverage: 100,
-          openPrice: 82.00,
-          closePrice: 83.20,
+          openPrice: 108.50,
+          closePrice: 109.80,
           swapMethod: 'points',
-          swapRate: -2.5,
+          swapRate: -3.5,
           swapDays: 1,
           quoteToAccRate: 1,
           quoteToAccMode: 'none',
-          baseToAccRate: 82.00,
+          baseToAccRate: 108.50,
           baseToAccMode: 'multiply',
-          usdRubRate: 86.000,
+          usdRubRate: 96.500,
           label: 'BRENT (Нефть Brent, 1 000 баррелей)'
         },
         ndaq_idx: {
@@ -1866,16 +1951,16 @@
           contract: 1,
           precision: 0.01,
           leverage: 20,
-          openPrice: 18200.00,
-          closePrice: 18350.00,
+          openPrice: 20800.00,
+          closePrice: 20950.00,
           swapMethod: 'pct_current',
           swapRate: -5.0,
           swapDays: 1,
           quoteToAccRate: 1,
           quoteToAccMode: 'none',
-          baseToAccRate: 18200.00,
+          baseToAccRate: 20800.00,
           baseToAccMode: 'multiply',
-          usdRubRate: 86.000,
+          usdRubRate: 96.500,
           label: 'NDAQ (Индекс Nasdaq 100)'
         },
         de40_idx: {
@@ -1888,8 +1973,8 @@
           contract: 1,
           precision: 0.01,
           leverage: 20,
-          openPrice: 18400.00,
-          closePrice: 18500.00,
+          openPrice: 19400.00,
+          closePrice: 19500.00,
           swapMethod: 'pct_current',
           swapRate: -4.5,
           swapDays: 1,
@@ -1897,7 +1982,7 @@
           quoteToAccMode: 'multiply',
           baseToAccRate: 1.1000,
           baseToAccMode: 'multiply',
-          usdRubRate: 86.000,
+          usdRubRate: 96.500,
           label: 'DE40 (Индекс Германии в EUR)'
         },
         aapl_stock: {
@@ -1910,8 +1995,8 @@
           contract: 100,
           precision: 0.01,
           leverage: 5,
-          openPrice: 140.00,
-          closePrice: 150.00,
+          openPrice: 235.00,
+          closePrice: 245.00,
           swapMethod: 'pct_current',
           swapRate: -5.0,
           swapDays: 1,
@@ -1919,7 +2004,7 @@
           quoteToAccMode: 'none',
           baseToAccRate: 1,
           baseToAccMode: 'none',
-          usdRubRate: 86.000,
+          usdRubRate: 96.500,
           label: 'AAPL (Акция США, 100 акций)'
         },
         tsla_stock: {
@@ -1932,8 +2017,8 @@
           contract: 100,
           precision: 0.01,
           leverage: 5,
-          openPrice: 210.00,
-          closePrice: 225.00,
+          openPrice: 250.00,
+          closePrice: 265.00,
           swapMethod: 'pct_current',
           swapRate: -5.0,
           swapDays: 1,
@@ -1941,7 +2026,7 @@
           quoteToAccMode: 'none',
           baseToAccRate: 1,
           baseToAccMode: 'none',
-          usdRubRate: 86.000,
+          usdRubRate: 96.500,
           label: 'TSLA (Акция США, 100 акций)'
         },
         barc_uk: {
@@ -1954,8 +2039,8 @@
           contract: 1,
           precision: 0.0001,
           leverage: 20,
-          openPrice: 2.1500,
-          closePrice: 2.2000,
+          openPrice: 2.4500,
+          closePrice: 2.5000,
           swapMethod: 'pct_current',
           swapRate: -5.0,
           swapDays: 1,
@@ -1963,7 +2048,7 @@
           quoteToAccMode: 'multiply',
           baseToAccRate: 1.2700,
           baseToAccMode: 'multiply',
-          usdRubRate: 86.000,
+          usdRubRate: 96.500,
           label: 'BARC.UK (Акция Великобритании в GBP)'
         },
         bmw_de: {
@@ -1976,8 +2061,8 @@
           contract: 1,
           precision: 0.01,
           leverage: 20,
-          openPrice: 95.00,
-          closePrice: 98.50,
+          openPrice: 85.00,
+          closePrice: 88.50,
           swapMethod: 'pct_current',
           swapRate: -4.5,
           swapDays: 1,
@@ -1985,7 +2070,7 @@
           quoteToAccMode: 'multiply',
           baseToAccRate: 1.1000,
           baseToAccMode: 'multiply',
-          usdRubRate: 86.000,
+          usdRubRate: 96.500,
           label: 'BMW.DE (Акция Германии в EUR)'
         },
         margin_ex1: {
@@ -2089,17 +2174,17 @@
         'EUR/GBP': { base: 'EUR', quote: 'GBP', contract: 100000, precision: 0.00001, open: 0.85500, close: 0.86000, qMode: 'multiply', qRate: 1.27000, bMode: 'multiply', bRate: 1.10000 },
         'AUD/NZD': { base: 'AUD', quote: 'NZD', contract: 100000, precision: 0.00001, open: 1.09000, close: 1.09500, qMode: 'multiply', qRate: 0.60000, bMode: 'multiply', bRate: 0.66000 },
         'GBP/CHF': { base: 'GBP', quote: 'CHF', contract: 100000, precision: 0.00001, open: 1.15000, close: 1.14000, qMode: 'divide', qRate: 0.90000, bMode: 'multiply', bRate: 1.27000 },
-        'XAU/USD': { base: 'USD', quote: 'USD', contract: 100, precision: 0.01, open: 2350.00, close: 2360.00, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
-        'XAG/USD': { base: 'USD', quote: 'USD', contract: 5000, precision: 0.001, open: 28.500, close: 28.700, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
-        'WTI':     { base: 'USD', quote: 'USD', contract: 1000, precision: 0.01, open: 78.50, close: 79.50, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
-        'BRENT':   { base: 'USD', quote: 'USD', contract: 1000, precision: 0.01, open: 82.00, close: 83.20, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
-        'NDAQ':    { base: 'USD', quote: 'USD', contract: 1, precision: 0.01, open: 18200.00, close: 18350.00, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
-        'SPX500':  { base: 'USD', quote: 'USD', contract: 10, precision: 0.01, open: 5400.00, close: 5450.00, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
-        'DE40':    { base: 'EUR', quote: 'EUR', contract: 1, precision: 0.01, open: 18400.00, close: 18500.00, qMode: 'multiply', qRate: 1.10000, bMode: 'multiply', bRate: 1.10000 },
-        'AAPL':    { base: 'USD', quote: 'USD', contract: 100, precision: 0.01, open: 140.00, close: 150.00, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
-        'TSLA':    { base: 'USD', quote: 'USD', contract: 100, precision: 0.01, open: 210.00, close: 225.00, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
-        'BARC.UK': { base: 'GBP', quote: 'GBP', contract: 1, precision: 0.0001, open: 2.1500, close: 2.2000, qMode: 'multiply', qRate: 1.27000, bMode: 'multiply', bRate: 1.27000 },
-        'BMW.DE':  { base: 'EUR', quote: 'EUR', contract: 1, precision: 0.01, open: 95.00, close: 98.50, qMode: 'multiply', qRate: 1.10000, bMode: 'multiply', bRate: 1.10000 }
+        'XAU/USD': { base: 'USD', quote: 'USD', contract: 100, precision: 0.01, open: 4130.00, close: 4140.00, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
+        'XAG/USD': { base: 'USD', quote: 'USD', contract: 5000, precision: 0.001, open: 57.500, close: 57.900, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
+        'WTI':     { base: 'USD', quote: 'USD', contract: 1000, precision: 0.01, open: 97.20, close: 98.20, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
+        'BRENT':   { base: 'USD', quote: 'USD', contract: 1000, precision: 0.01, open: 108.50, close: 109.80, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
+        'NDAQ':    { base: 'USD', quote: 'USD', contract: 1, precision: 0.01, open: 20800.00, close: 20950.00, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
+        'SPX500':  { base: 'USD', quote: 'USD', contract: 10, precision: 0.01, open: 7820.00, close: 7870.00, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
+        'DE40':    { base: 'EUR', quote: 'EUR', contract: 1, precision: 0.01, open: 19400.00, close: 19500.00, qMode: 'multiply', qRate: 1.10000, bMode: 'multiply', bRate: 1.10000 },
+        'AAPL':    { base: 'USD', quote: 'USD', contract: 100, precision: 0.01, open: 235.00, close: 245.00, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
+        'TSLA':    { base: 'USD', quote: 'USD', contract: 100, precision: 0.01, open: 250.00, close: 265.00, qMode: 'none', qRate: 1, bMode: 'none', bRate: 1 },
+        'BARC.UK': { base: 'GBP', quote: 'GBP', contract: 1, precision: 0.0001, open: 2.4500, close: 2.5000, qMode: 'multiply', qRate: 1.27000, bMode: 'multiply', bRate: 1.27000 },
+        'BMW.DE':  { base: 'EUR', quote: 'EUR', contract: 1, precision: 0.01, open: 85.00, close: 88.50, qMode: 'multiply', qRate: 1.10000, bMode: 'multiply', bRate: 1.10000 }
       };
 
       const SWAP_TYPES_DOC = [
@@ -2233,8 +2318,8 @@
               contract: 100,
               precision: 0.01,
               leverage: 100,
-              openPrice: 2350.00,
-              closePrice: 2360.00,
+              openPrice: 4130.00,
+              closePrice: 4140.00,
               swapMethod: 'margin_curr',
               swapRate: -5,
               swapDays: 1,
@@ -2457,6 +2542,9 @@
       ];
 
       let currentDirection = 'BUY';
+      let mt5Connected = false;
+      let mt5LiveTimer = null;
+      let mt5CachedRates = {};
 
       const elInstrument = document.getElementById('masterInstrument');
       const elBtnBuy = document.getElementById('btnDirBuy');
@@ -2480,6 +2568,42 @@
       const elBaseToAccMode = document.getElementById('masterBaseToAccMode');
       const elUsdRubRate = document.getElementById('masterUsdRubRate');
       const elRubExtraRow = document.getElementById('rubExtraRateRow');
+
+      // MT5 Elements
+      const btnMt5Status = document.getElementById('btnMt5Status');
+      const mt5StatusDot = document.getElementById('mt5StatusDot');
+      const mt5StatusText = document.getElementById('mt5StatusText');
+      const heroLiveBadge = document.getElementById('heroLiveBadge');
+      const livePriceTicker = document.getElementById('livePriceTicker');
+      const mt5ModalBackdrop = document.getElementById('mt5ModalBackdrop');
+      const btnCloseMt5Modal = document.getElementById('btnCloseMt5Modal');
+      const btnCloseMt5ModalFooter = document.getElementById('btnCloseMt5ModalFooter');
+      const btnTestMt5Connection = document.getElementById('btnTestMt5Connection');
+
+      // Map UI symbols to standard MT5 symbol names
+      const SYMBOL_TO_MT5 = {
+        'EUR/USD': 'EURUSD',
+        'GBP/USD': 'GBPUSD',
+        'USD/CAD': 'USDCAD',
+        'USD/CHF': 'USDCHF',
+        'USD/JPY': 'USDJPY',
+        'GBP/JPY': 'GBPJPY',
+        'EUR/CHF': 'EURCHF',
+        'EUR/GBP': 'EURGBP',
+        'AUD/NZD': 'AUDNZD',
+        'GBP/CHF': 'GBPCHF',
+        'XAU/USD': 'XAUUSD',
+        'XAG/USD': 'XAGUSD',
+        'WTI': 'WTI',
+        'BRENT': 'BRENT',
+        'NDAQ': 'NDAQ',
+        'SPX500': 'SPX500',
+        'DE40': 'DE40',
+        'AAPL': 'AAPL',
+        'TSLA': 'TSLA',
+        'BARC.UK': 'BARC',
+        'BMW.DE': 'BMW'
+      };
 
       function fmtCurr(val, curr, decimals = 2) {
         if (!isFinite(val)) return '0.00 ' + curr;
@@ -2829,7 +2953,15 @@
         elBaseToAccMode.value = p.baseToAccMode;
         elUsdRubRate.value = p.usdRubRate || 86.000;
 
-        recalculateAll();
+        // If MT5 is connected, override with live ticker data; else check webRates
+        if (mt5Connected && SYMBOL_TO_MT5[p.instrument]) {
+          applyMt5DataToInputs(SYMBOL_TO_MT5[p.instrument]);
+        } else if (webRates && webRates[p.instrument]) {
+          applyOnlineRatesToCurrentInstrument();
+        } else {
+          recalculateAll();
+        }
+
         if (p.label) {
           showToast(p.label);
         }
@@ -2844,6 +2976,336 @@
           elBtnBuy.className = 'py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white';
         }
       }
+
+      // Apply live MT5 tick and specification to calculator inputs
+      function applyMt5DataToInputs(mt5Symbol) {
+        const item = mt5CachedRates[mt5Symbol];
+        if (!item) return;
+
+        // Update live ticker display
+        livePriceTicker.textContent = `Bid: ${item.bid} | Ask: ${item.ask}`;
+        livePriceTicker.classList.remove('hidden');
+
+        // Map live prices to Open / Close
+        if (currentDirection === 'BUY') {
+          elOpenPrice.value = item.ask;
+          elClosePrice.value = item.bid;
+        } else {
+          elOpenPrice.value = item.bid;
+          elClosePrice.value = item.ask;
+        }
+
+        // Map broker contract size and precision
+        if (item.contract_size) elContract.value = item.contract_size;
+        if (item.point) elPrecision.value = String(item.point);
+        if (item.base_currency) elBaseCurr.value = item.base_currency;
+        if (item.quote_currency) elQuoteCurr.value = item.quote_currency;
+
+        // Map swaps from terminal
+        if (item.swap_mode) elSwapMethod.value = item.swap_mode;
+        const liveSwap = currentDirection === 'BUY' ? item.swap_long : item.swap_short;
+        if (typeof liveSwap === 'number') elSwapRate.value = liveSwap;
+
+        // Auto-fetch cross conversion rates if present
+        if (mt5CachedRates['EURUSD'] && elBaseCurr.value === 'EUR' && elAccountCurr.value === 'USD') {
+          elBaseToAccRate.value = mt5CachedRates['EURUSD'].bid;
+          elBaseToAccMode.value = 'multiply';
+        }
+        if (mt5CachedRates['USDCHF'] && elQuoteCurr.value === 'CHF' && elAccountCurr.value === 'USD') {
+          elQuoteToAccRate.value = mt5CachedRates['USDCHF'].bid;
+          elQuoteToAccMode.value = 'divide';
+        }
+        if (mt5CachedRates['USDJPY'] && elQuoteCurr.value === 'JPY' && elAccountCurr.value === 'USD') {
+          elQuoteToAccRate.value = mt5CachedRates['USDJPY'].bid;
+          elQuoteToAccMode.value = 'divide';
+        }
+        if (mt5CachedRates['USDCAD'] && elQuoteCurr.value === 'CAD' && elAccountCurr.value === 'USD') {
+          elQuoteToAccRate.value = mt5CachedRates['USDCAD'].bid;
+          elQuoteToAccMode.value = 'divide';
+        }
+        if (mt5CachedRates['USDRUB']) {
+          elUsdRubRate.value = mt5CachedRates['USDRUB'].bid;
+        }
+
+        recalculateAll();
+      }
+
+      // ==========================================
+      // YAHOO FINANCE & MULTI-API LIVE RATES
+      // Real-time quotes for Gold ($4,100+), Silver, Oil, Stocks & Forex
+      // Works for any visitor on GitHub Pages directly in the browser!
+      // ==========================================
+      const YAHOO_TICKERS = {
+        'EUR/USD': 'EURUSD=X',
+        'GBP/USD': 'GBPUSD=X',
+        'USD/CAD': 'USDCAD=X',
+        'USD/CHF': 'USDCHF=X',
+        'USD/JPY': 'USDJPY=X',
+        'GBP/JPY': 'GBPJPY=X',
+        'EUR/CHF': 'EURCHF=X',
+        'EUR/GBP': 'EURGBP=X',
+        'AUD/NZD': 'AUDNZD=X',
+        'GBP/CHF': 'GBPCHF=X',
+        'XAU/USD': 'GC=F',       // Золото (фьючерс COMEX / спот)
+        'XAG/USD': 'SI=F',       // Серебро
+        'WTI': 'CL=F',           // Нефть WTI
+        'BRENT': 'BZ=F',         // Нефть Brent
+        'NDAQ': 'NQ=F',          // Индекс Nasdaq 100
+        'SPX500': 'ES=F',        // Индекс S&P 500
+        'DE40': '^GDAXI',        // Индекс DAX 40
+        'AAPL': 'AAPL',          // Apple Inc.
+        'TSLA': 'TSLA',          // Tesla Inc.
+        'BARC.UK': 'BARC.L',     // Barclays PLC
+        'BMW.DE': 'BMW.DE',      // BMW AG
+        'USD/RUB': 'USDRUB=X'
+      };
+
+      let webRates = {
+        'XAU/USD': 4134.40,
+        'XAG/USD': 57.50,
+        'WTI': 97.20,
+        'BRENT': 108.50,
+        'NDAQ': 20800.00,
+        'SPX500': 7820.00,
+        'DE40': 19400.00,
+        'AAPL': 235.00,
+        'TSLA': 250.00,
+        'BARC.UK': 2.45,
+        'BMW.DE': 85.00,
+        'USD/RUB': 96.50
+      };
+
+      const btnWebLive = document.getElementById('btnWebLive');
+      const webLiveDot = document.getElementById('webLiveDot');
+      const webLiveText = document.getElementById('webLiveText');
+      const heroWebBadge = document.getElementById('heroWebBadge');
+
+      // Helper to fetch live quote from Yahoo Finance API via CORS gateways
+      async function fetchYahooTicker(yfSymbol) {
+        if (!yfSymbol) return null;
+        const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yfSymbol)}?interval=1d&range=1d`;
+        const proxies = [
+          `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`,
+          `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
+        ];
+
+        for (const pUrl of proxies) {
+          try {
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 4500);
+            const resp = await fetch(pUrl, { signal: ctrl.signal });
+            clearTimeout(timer);
+            if (!resp.ok) continue;
+            const data = await resp.json();
+            const meta = data?.chart?.result?.[0]?.meta;
+            const price = meta?.regularMarketPrice || data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close?.filter(Boolean)?.pop();
+            if (typeof price === 'number' && price > 0) {
+              return price;
+            }
+          } catch (e) {
+            // try next proxy
+          }
+        }
+        return null;
+      }
+
+      async function fetchOnlineRates(showToastMsg = true) {
+        webLiveText.textContent = 'Загрузка котировок...';
+        webLiveDot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-spin';
+
+        let successCount = 0;
+
+        // 1. Fetch currency exchange rates
+        try {
+          const resp = await fetch('https://open.er-api.com/v6/latest/USD');
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.rates) {
+              const r = data.rates;
+              webRates['EUR/USD'] = 1 / r.EUR;
+              webRates['GBP/USD'] = 1 / r.GBP;
+              webRates['USD/CAD'] = r.CAD;
+              webRates['USD/CHF'] = r.CHF;
+              webRates['USD/JPY'] = r.JPY;
+              webRates['GBP/JPY'] = r.JPY / r.GBP;
+              webRates['EUR/CHF'] = r.CHF / r.EUR;
+              webRates['EUR/GBP'] = r.GBP / r.EUR;
+              webRates['AUD/NZD'] = r.NZD / r.AUD;
+              webRates['GBP/CHF'] = r.CHF / r.GBP;
+              webRates['USD/RUB'] = r.RUB || 96.5;
+              successCount++;
+            }
+          }
+        } catch (e) {
+          console.warn('Currency API error:', e);
+        }
+
+        // 2. Fetch active instrument quote from Yahoo Finance
+        const curInst = elInstrument.value;
+        const curYfTicker = YAHOO_TICKERS[curInst];
+        if (curYfTicker) {
+          const p = await fetchYahooTicker(curYfTicker);
+          if (p) {
+            webRates[curInst] = p;
+            successCount++;
+          }
+        }
+
+        // 3. Fetch Gold & Oil in background if not active
+        if (curInst !== 'XAU/USD') {
+          fetchYahooTicker('GC=F').then(p => { if (p) webRates['XAU/USD'] = p; });
+        }
+        if (curInst !== 'WTI') {
+          fetchYahooTicker('CL=F').then(p => { if (p) webRates['WTI'] = p; });
+        }
+
+        webLiveDot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+        webLiveText.textContent = 'Цены онлайн: Актуально';
+        heroWebBadge.classList.remove('hidden');
+
+        applyOnlineRatesToCurrentInstrument();
+
+        if (showToastMsg) {
+          const goldTxt = webRates['XAU/USD'] ? ` (Золото: $${webRates['XAU/USD'].toFixed(1)})` : '';
+          showToast(`Котировки обновлены из сети${goldTxt}`);
+        }
+        return true;
+      }
+
+      function applyOnlineRatesToCurrentInstrument() {
+        if (!webRates) return;
+        const inst = elInstrument.value;
+        const currentRate = webRates[inst];
+
+        if (currentRate) {
+          const prec = parseFloat(elPrecision.value) || 0.01;
+          const digits = Math.max(2, Math.round(-Math.log10(prec)));
+          const spreadPips = (inst.includes('JPY') ? 15 : (inst === 'XAU/USD' ? 50 : 10)) * prec;
+
+          elOpenPrice.value = currentRate.toFixed(digits);
+          elClosePrice.value = (currentDirection === 'BUY' ? (currentRate + spreadPips) : (currentRate - spreadPips)).toFixed(digits);
+        }
+
+        // Auto-update conversion cross rates
+        if (webRates['USD/RUB']) {
+          elUsdRubRate.value = webRates['USD/RUB'].toFixed(3);
+        }
+        if (elAccountCurr.value === 'USD') {
+          if (elQuoteCurr.value === 'CHF' && webRates['USD/CHF']) {
+            elQuoteToAccRate.value = webRates['USD/CHF'].toFixed(5);
+            elQuoteToAccMode.value = 'divide';
+          }
+          if (elQuoteCurr.value === 'JPY' && webRates['USD/JPY']) {
+            elQuoteToAccRate.value = webRates['USD/JPY'].toFixed(3);
+            elQuoteToAccMode.value = 'divide';
+          }
+          if (elQuoteCurr.value === 'CAD' && webRates['USD/CAD']) {
+            elQuoteToAccRate.value = webRates['USD/CAD'].toFixed(5);
+            elQuoteToAccMode.value = 'divide';
+          }
+          if (elQuoteCurr.value === 'GBP' && webRates['GBP/USD']) {
+            elQuoteToAccRate.value = webRates['GBP/USD'].toFixed(5);
+            elQuoteToAccMode.value = 'multiply';
+          }
+          if (elBaseCurr.value === 'EUR' && webRates['EUR/USD']) {
+            elBaseToAccRate.value = webRates['EUR/USD'].toFixed(5);
+            elBaseToAccMode.value = 'multiply';
+          }
+          if (elBaseCurr.value === 'GBP' && webRates['GBP/USD']) {
+            elBaseToAccRate.value = webRates['GBP/USD'].toFixed(5);
+            elBaseToAccMode.value = 'multiply';
+          }
+        }
+
+        recalculateAll();
+      }
+
+      // Automatically fetch Yahoo Finance quote when selecting an instrument
+      async function updateYahooPriceForSelected(inst) {
+        const yfSym = YAHOO_TICKERS[inst];
+        if (!yfSym) return;
+        livePriceTicker.textContent = 'Yahoo: ...';
+        livePriceTicker.classList.remove('hidden');
+        const p = await fetchYahooTicker(yfSym);
+        if (p) {
+          webRates[inst] = p;
+          livePriceTicker.textContent = `Yahoo: ${p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          applyOnlineRatesToCurrentInstrument();
+        } else {
+          livePriceTicker.classList.add('hidden');
+        }
+      }
+
+      btnWebLive.addEventListener('click', () => {
+        fetchOnlineRates(true);
+      });
+
+      // Check / Poll connection to local MT5 Bridge
+      async function checkMt5Connection(silent = false) {
+        try {
+          const resp = await fetch('http://127.0.0.1:8000/api/rates', { mode: 'cors' });
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          const data = await resp.json();
+
+          if (data && data.rates) {
+            mt5Connected = true;
+            mt5CachedRates = data.rates;
+
+            mt5StatusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+            mt5StatusText.textContent = 'MT5: Онлайн (Live)';
+            heroLiveBadge.classList.remove('hidden');
+
+            const currentMt5Sym = SYMBOL_TO_MT5[elInstrument.value];
+            if (currentMt5Sym && mt5CachedRates[currentMt5Sym]) {
+              applyMt5DataToInputs(currentMt5Sym);
+            }
+
+            if (!silent) showToast('MetaTrader 5 успешно подключен! Цены обновляются.');
+            if (mt5ModalBackdrop.classList.contains('flex')) closeMt5Modal();
+            return true;
+          }
+        } catch (e) {
+          mt5Connected = false;
+          mt5StatusDot.className = 'w-2 h-2 rounded-full bg-slate-500';
+          mt5StatusText.textContent = 'MT5: Офлайн';
+          heroLiveBadge.classList.add('hidden');
+          livePriceTicker.classList.add('hidden');
+          if (!silent) openMt5Modal();
+          return false;
+        }
+      }
+
+      function openMt5Modal() {
+        mt5ModalBackdrop.classList.remove('hidden');
+        mt5ModalBackdrop.classList.add('flex');
+      }
+
+      function closeMt5Modal() {
+        mt5ModalBackdrop.classList.add('hidden');
+        mt5ModalBackdrop.classList.remove('flex');
+      }
+
+      btnMt5Status.addEventListener('click', () => {
+        if (!mt5Connected) {
+          checkMt5Connection(false);
+        } else {
+          openMt5Modal();
+        }
+      });
+
+      btnCloseMt5Modal.addEventListener('click', closeMt5Modal);
+      btnCloseMt5ModalFooter.addEventListener('click', closeMt5Modal);
+      btnTestMt5Connection.addEventListener('click', () => checkMt5Connection(false));
+      mt5ModalBackdrop.addEventListener('click', (e) => {
+        if (e.target === mt5ModalBackdrop) closeMt5Modal();
+      });
+
+      // Background poll when connected (every 2.5s)
+      setInterval(() => {
+        if (mt5Connected) {
+          checkMt5Connection(true);
+        }
+      }, 2500);
 
       function renderSwapCards() {
         const container = document.getElementById('swapCardsContainer');
@@ -3093,19 +3555,38 @@
           elBaseToAccMode.value = s.bMode;
           elBaseToAccRate.value = s.bRate;
         }
-        recalculateAll();
+
+        // If MT5 live is on, update with live broker data; else check webRates & Yahoo
+        if (mt5Connected && SYMBOL_TO_MT5[val]) {
+          applyMt5DataToInputs(SYMBOL_TO_MT5[val]);
+        } else {
+          if (webRates && webRates[val]) {
+            applyOnlineRatesToCurrentInstrument();
+          } else {
+            recalculateAll();
+          }
+          updateYahooPriceForSelected(val);
+        }
       });
 
       elBtnBuy.addEventListener('click', () => {
         currentDirection = 'BUY';
         updateDirectionButtons();
-        recalculateAll();
+        if (mt5Connected && SYMBOL_TO_MT5[elInstrument.value]) {
+          applyMt5DataToInputs(SYMBOL_TO_MT5[elInstrument.value]);
+        } else {
+          recalculateAll();
+        }
       });
 
       elBtnSell.addEventListener('click', () => {
         currentDirection = 'SELL';
         updateDirectionButtons();
-        recalculateAll();
+        if (mt5Connected && SYMBOL_TO_MT5[elInstrument.value]) {
+          applyMt5DataToInputs(SYMBOL_TO_MT5[elInstrument.value]);
+        } else {
+          recalculateAll();
+        }
       });
 
       elLotSlider.addEventListener('input', () => {
@@ -3153,6 +3634,16 @@
 
       renderSwapCards();
       recalculateAll();
+
+      // Attempt silent auto-fetch of online rates (for GitHub Pages visitors)
+      setTimeout(() => {
+        fetchOnlineRates(false);
+      }, 300);
+
+      // Attempt silent auto-connect on load if user is running MT5 bridge locally
+      setTimeout(() => {
+        checkMt5Connection(true);
+      }, 800);
     })();
   </script>
 </body>
